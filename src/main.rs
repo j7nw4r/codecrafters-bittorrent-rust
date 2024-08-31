@@ -27,7 +27,7 @@ fn decode_bencoded_value(encoded_value: &str) -> serde_json::Value {
             panic!("Unhandled encoded value: {}", encoded_value)
         };
         let Ok(parsed_num) = num.parse::<u32>() else {
-            panic!("Unhandled encoded value: {}", encoded_value)
+            panic!("Unhandled encoded value: {}", num)
         };
         return serde_json::Value::Number(parsed_num.into());
     } else {
