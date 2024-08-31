@@ -1,14 +1,15 @@
 use serde_json;
 use std::env;
+use anyhow::bail;
 // Available if you need it!
 // use serde_bencode
 
 #[allow(dead_code)]
-fn decode_bencoded_value(encoded_value: &str) -> serde_json::Value {
+fn decode_bencoded_value(encoded_value: &str) -> anyhow::Result<serde_json::Value> {
     let mut encoded_chars = encoded_value.chars();
     // If encoded_value starts with a digit, it's a number
     let Some(encoded_char) = encoded_chars.next() else {
-        panic!("Unhandled encoded value: {}", encoded_value)
+        bail!("Unhandled encoded value: {}", encoded_value)
     };
     
     if encoded_char.is_digit(10) {
@@ -17,21 +18,21 @@ fn decode_bencoded_value(encoded_value: &str) -> serde_json::Value {
         let number_string = &encoded_value[..colon_index];
         let number = number_string.parse::<i64>().unwrap();
         let string = &encoded_value[colon_index + 1..colon_index + 1 + number as usize];
-        return serde_json::Value::String(string.to_string());
+        Ok(serde_json::Value::String(string.to_string()))
     } else if encoded_char.eq_ignore_ascii_case(&'i')  {
         let Some(suffix) = encoded_value.strip_prefix("i") else {
-            panic!("Unhandled encoded value: {}", encoded_value)
+            bail!("could not remove i prefix from: {}", encoded_value)
         };
         let parts = suffix.split("e").map(|x| x.to_owned()).collect::<Vec<String>>();
         let Some(num) = parts.first() else {
-            panic!("Unhandled encoded value: {}", encoded_value)
+            bail!("could not split suffix on \"e\"  {}", suffix)
         };
-        let Ok(parsed_num) = num.parse::<u32>() else {
-            panic!("Unhandled encoded value: {}", num)
+        let Ok(parsed_num) = num.parse::<i64>() else {
+            bail!("could not parse num into i64: {}", num)
         };
-        return serde_json::Value::Number(parsed_num.into());
+        Ok(serde_json::Value::Number(parsed_num.into()))
     } else {
-        panic!("Unhandled encoded value: {}", encoded_value)
+        bail!("Unhandled encoded value: {}", encoded_value)
     }
 }
 
@@ -46,7 +47,10 @@ fn main() {
 
         // Uncomment this block to pass the first stage
         let encoded_value = &args[2];
-        let decoded_value = decode_bencoded_value(encoded_value);
+        let decoded_value= match decode_bencoded_value(encoded_value) {
+            Ok(decoded_value) => decoded_value,
+            Err(e) => panic!("{}",e)
+        };
         println!("{}", decoded_value.to_string());
     } else {
         println!("unknown command: {}", args[1])
