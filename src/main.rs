@@ -1,7 +1,7 @@
 mod decoder;
 
 use crate::decoder::{decode_list, decode_number, decode_string};
-use anyhow::bail;
+use anyhow::{bail, Context};
 use clap::{Parser, Subcommand};
 use serde_json;
 
@@ -19,20 +19,20 @@ enum Cmd {
 }
 
 // Usage: your_bittorrent.sh decode "<encoded_value>"
-fn main() {
+fn main() -> anyhow::Result<()>{
     let cli = Cli::parse();
 
     match cli.cmd {
         Cmd::Decode{ value: encoded_value } => {
-            let decoded_values = match decode_bencoded_value(&encoded_value) {
-                Ok(decoded_values) => decoded_values,
-                Err(e) => panic!("{}",e)
-            };
+            let decoded_values = decode_bencoded_value(&encoded_value)
+                .context("could not decode value")?;
             for decoded_values in decoded_values {
                 println!("{}", decoded_values)
             }
         }
     }
+
+    Ok(())
 }
 
 #[allow(dead_code)]
